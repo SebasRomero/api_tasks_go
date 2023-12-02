@@ -44,3 +44,46 @@ func GetTask(context *gin.Context) {
 
 	context.IndentedJSON(http.StatusOK, task)
 }
+
+func UpdateTask(context *gin.Context) {
+	id := context.Param("id")
+	task, err := getTaskById(id)
+
+	if err != nil {
+		context.IndentedJSON(http.StatusNotFound, gin.H{"message": "Task not found"})
+		return
+	}
+
+	task.Completed = !task.Completed
+	context.IndentedJSON(http.StatusOK, task)
+}
+
+func DeleteTask(context *gin.Context) {
+	id := context.Param("id")
+	task, err := getTaskById(id)
+
+	if err != nil {
+		context.IndentedJSON(http.StatusNotFound, gin.H{"message": "Task not found"})
+		return
+	}
+
+	Tasks = removeById(Tasks, task.ID)
+
+	context.IndentedJSON(http.StatusAccepted, Tasks)
+}
+
+func removeById(tasks []Task, id string) []Task {
+	index := -1
+	for i, element := range tasks {
+		if element.ID == id {
+			index = i
+			break
+		}
+	}
+
+	if index != -1 {
+		tasks = append(tasks[:index], tasks[index+1:]...)
+	}
+
+	return tasks
+}
