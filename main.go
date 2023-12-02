@@ -9,6 +9,7 @@ import (
 func main() {
 	router := gin.Default()
 	router.GET("/tasks", tasks.GetTasks)
+	router.GET("/tasks/:id", tasks.GetTask)
 	router.POST("/tasks", tasks.AddTask)
 	router.Run("localhost:9090")
 }
