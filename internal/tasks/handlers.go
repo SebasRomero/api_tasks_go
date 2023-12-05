@@ -2,26 +2,9 @@ package tasks
 
 import (
 	"errors"
-	"net/http"
 
-	"github.com/gin-gonic/gin"
+	"github.com/graphql-go/graphql"
 )
-
-func GetTasks(context *gin.Context) {
-	context.IndentedJSON(http.StatusOK, Tasks)
-}
-
-func AddTask(context *gin.Context) {
-	var newTask Task
-
-	if err := context.BindJSON(&newTask); err != nil {
-		return
-	}
-
-	Tasks = append(Tasks, newTask)
-
-	context.IndentedJSON(http.StatusCreated, newTask)
-}
 
 func getTaskById(id string) (*Task, error) {
 	for i, task := range Tasks {
@@ -31,45 +14,6 @@ func getTaskById(id string) (*Task, error) {
 	}
 
 	return nil, errors.New("Task not found")
-}
-
-func GetTask(context *gin.Context) {
-	id := context.Param("id")
-	task, err := getTaskById(id)
-
-	if err != nil {
-		context.IndentedJSON(http.StatusNotFound, gin.H{"message": "Task not found"})
-		return
-	}
-
-	context.IndentedJSON(http.StatusOK, task)
-}
-
-func UpdateTask(context *gin.Context) {
-	id := context.Param("id")
-	task, err := getTaskById(id)
-
-	if err != nil {
-		context.IndentedJSON(http.StatusNotFound, gin.H{"message": "Task not found"})
-		return
-	}
-
-	task.Completed = !task.Completed
-	context.IndentedJSON(http.StatusOK, task)
-}
-
-func DeleteTask(context *gin.Context) {
-	id := context.Param("id")
-	task, err := getTaskById(id)
-
-	if err != nil {
-		context.IndentedJSON(http.StatusNotFound, gin.H{"message": "Task not found"})
-		return
-	}
-
-	Tasks = removeById(Tasks, task.ID)
-
-	context.IndentedJSON(http.StatusAccepted, Tasks)
 }
 
 func removeById(tasks []Task, id string) []Task {
@@ -86,4 +30,55 @@ func removeById(tasks []Task, id string) []Task {
 	}
 
 	return tasks
+}
+
+func GetTasks(params graphql.ResolveParams) (interface{}, error) {
+	return Tasks, nil
+}
+
+func GetTask(params graphql.ResolveParams) (interface{}, error) {
+	idQuery := params.Args["id"].(string)
+
+	task, err := getTaskById(idQuery)
+
+	if err != nil {
+		return nil, nil
+	}
+
+	return task, nil
+
+}
+
+func AddTask(params graphql.ResolveParams) (interface{}, error) {
+	task := Task{
+		ID:          params.Args["id"].(string),
+		Title:       params.Args["title"].(string),
+		Description: params.Args["description"].(string),
+		Completed:   params.Args["completed"].(bool),
+	}
+
+	Tasks = append(Tasks, task)
+	return task, nil
+}
+
+func DeleteTask(params graphql.ResolveParams) (interface{}, error) {
+	task, err := getTaskById(params.Args["id"].(string))
+
+	if err != nil {
+		return nil, err
+	}
+
+	Tasks = removeById(Tasks, task.ID)
+	return Tasks, nil
+}
+
+func UpdateTask(params graphql.ResolveParams) (interface{}, error) {
+	task, err := getTaskById(params.Args["id"].(string))
+
+	if err != nil {
+		return nil, err
+	}
+
+	task.Completed = !task.Completed
+	return task, nil
 }
